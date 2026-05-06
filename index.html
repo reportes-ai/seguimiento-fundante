@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Fundantes v1.0</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --azul: #1a3a6a; --azul-claro: #1976D2; --azul-bg: #E8EEF8;
+    --morado: #4A148C; --morado-claro: #6A1B9A; --morado-bg: #F3E5F5;
+    --gris: #37474F; --gris-claro: #ECEFF1; --gris-medio: #B0BEC5;
+    --verde: #2E7D32; --verde-bg: #E8F5E9;
+    --amarillo: #F9A825; --amarillo-bg: #FFFDE7;
+    --rojo: #C62828; --rojo-bg: #FFEBEE;
+    --naranja: #E65100; --naranja-bg: #FFF3E0;
+    --cyan: #00838F; --cyan-bg: #E0F7FA;
+    --blanco: #FFFFFF; --fondo: #F4F6FB;
+    --borde: #CFD8DC; --texto: #1a2a3a; --texto-sec: #546E7A;
+    --sombra: 0 1px 4px rgba(0,0,0,0.10); --radio: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--fondo); color: var(--texto); font-size: 14px; }
+
+  /* LOGIN */
+  #login-screen { position:fixed;inset:0;background:linear-gradient(135deg,#0D2B5E 0%,#1a3a6a 60%,#1976D2 100%);display:none;align-items:center;justify-content:center;z-index:1000; }
+  #login-screen.visible { display:flex; }
+  .login-card { background:#fff;border-radius:16px;padding:40px 36px;width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.28); }
+  .login-logo { text-align:center;margin-bottom:28px; }
+  .login-logo h1 { color:var(--azul);font-size:22px;font-weight:700; }
+  .login-logo p { color:var(--texto-sec);font-size:13px;margin-top:4px; }
+  .login-card label { display:block;font-size:12px;font-weight:600;color:var(--texto-sec);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px; }
+  .login-card input { width:100%;padding:10px 12px;border:1.5px solid var(--borde);border-radius:var(--radio);font-size:14px;margin-bottom:16px;outline:none; }
+  .login-card input:focus { border-color:var(--azul); }
+  .btn-login { width:100%;padding:12px;background:var(--azul);color:#fff;border:none;border-radius:var(--radio);font-size:15px;font-weight:600;cursor:pointer; }
+  .btn-login:hover { background:#0D2B5E; }
+  .login-error { color:var(--rojo);font-size:13px;margin-top:-8px;margin-bottom:12px;display:none; }
+
+  /* LOADING */
+  #loading-overlay { position:fixed;inset:0;background:rgba(255,255,255,0.85);display:none;align-items:center;justify-content:center;z-index:900;flex-direction:column;gap:12px; }
+  #loading-overlay.visible { display:flex; }
+  .spinner { width:36px;height:36px;border:4px solid var(--azul-bg);border-top-color:var(--azul);border-radius:50%;animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #loading-overlay p { color:var(--texto-sec);font-size:13px; }
+
+  /* APP */
+  #app { display:none;min-height:100vh; }
+  header { background:var(--azul);color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;box-shadow:0 2px 8px rgba(0,0,0,0.2); }
+  header h1 { font-size:16px;font-weight:600; }
+  .header-right { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+  .btn-sm { background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;transition:background 0.2s;white-space:nowrap; }
+  .btn-sm:hover { background:rgba(255,255,255,0.3); }
+
+  /* LAYOUT */
+  .main-layout { display:flex;height:calc(100vh - 52px);overflow:hidden; }
+
+  /* PANEL IZQUIERDO */
+  .panel-left { width:370px;min-width:320px;background:var(--blanco);border-right:1px solid var(--borde);display:flex;flex-direction:column;overflow:hidden; }
+  .panel-left-header { padding:14px 16px 10px;border-bottom:1px solid var(--gris-claro); }
+  .panel-left-header h2 { font-size:13px;font-weight:700;color:var(--azul); }
+  .panel-left-header .fecha { font-size:11px;color:var(--texto-sec);margin-top:2px; }
+
+  /* UPLOAD */
+  .upload-area { margin:10px 14px 4px;padding:10px 14px;border:1.5px dashed var(--azul-claro);border-radius:var(--radio);background:var(--azul-bg);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.2s; }
+  .upload-area:hover { background:#BBDEFB; }
+  .upload-area .icon { font-size:18px; }
+  .upload-area p { font-size:12px;color:var(--azul);font-weight:500;margin:0; }
+  .upload-area small { font-size:11px;color:var(--texto-sec); }
+  #file-input { display:none; }
+  .estado-carga { padding:5px 12px;font-size:11px;background:var(--verde-bg);color:var(--verde);border-radius:4px;margin:0 14px 4px;display:none; }
+  .estado-error { background:var(--rojo-bg);color:var(--rojo); }
+
+  /* FILTROS */
+  .filtros-container { padding:8px 14px;border-bottom:1px solid var(--gris-claro); }
+  .filtro-row { display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap; }
+  .filtro-row select, .filtro-row input { flex:1;min-width:100px;padding:6px 8px;border:1.5px solid var(--borde);border-radius:var(--radio);font-size:12px;font-family:inherit;outline:none;background:var(--blanco); }
+  .filtro-row select:focus, .filtro-row input:focus { border-color:var(--azul); }
+  .btn-filtrar { padding:6px 14px;background:var(--azul);color:#fff;border:none;border-radius:var(--radio);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap; }
+  .btn-filtrar:hover { background:#0D2B5E; }
+  .btn-limpiar { padding:6px 10px;background:var(--blanco);color:var(--texto-sec);border:1.5px solid var(--borde);border-radius:var(--radio);font-size:12px;cursor:pointer;white-space:nowrap; }
+  .btn-limpiar:hover { background:var(--gris-claro); }
+
+  /* RESUMEN */
+  .resumen-container { overflow-y:auto;flex:1;padding:8px 12px; }
+  .resumen-table { width:100%;border-collapse:collapse;font-size:12px; }
+  .resumen-table th { background:var(--azul);color:#fff;padding:6px 8px;text-align:center;font-weight:600;font-size:11px;position:sticky;top:0;z-index:1; }
+  .resumen-table th:first-child { text-align:left;min-width:120px; }
+  .resumen-table td { padding:5px 8px;border-bottom:1px solid var(--gris-claro);text-align:center; }
+  .resumen-table td:first-child { text-align:left;font-weight:600; }
+  .resumen-table tr:hover td { background:#EEF2FF; }
+  .resumen-table .fila-total td { background:#E8EEF8;font-weight:700;border-top:2px solid var(--azul); }
+  .celda-clic { cursor:pointer;border-radius:4px;transition:background 0.15s; }
+  .celda-clic:hover { background:#BBDEFB !important; }
+  .celda-activa { background:var(--azul) !important;color:#fff !important;font-weight:700 !important;border-radius:4px; }
+  .badge-pend { background:var(--amarillo-bg);color:#F57F17;border-radius:3px;padding:1px 5px;font-weight:700; }
+  .badge-fpl { background:var(--rojo-bg);color:var(--rojo);border-radius:3px;padding:1px 5px;font-weight:700; }
+  .badge-ok { background:var(--verde-bg);color:var(--verde);border-radius:3px;padding:1px 5px;font-weight:600; }
+
+  /* BOTONES PANEL IZQ */
+  .btn-panel { margin:8px 14px 4px;padding:9px 0;color:#fff;border:none;border-radius:var(--radio);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;width:calc(100% - 28px); }
+  .btn-panel:disabled { background:var(--gris-medio) !important;cursor:not-allowed; }
+  .btn-nueva-gest { background:var(--morado-claro); }
+  .btn-nueva-gest:hover:not(:disabled) { background:var(--morado); }
+  .btn-exportar { background:var(--verde); }
+  .btn-exportar:hover:not(:disabled) { background:#1B5E20; }
+
+  /* PANEL DERECHO */
+  .panel-right { flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--fondo); }
+  .panel-right-header { background:var(--blanco);border-bottom:1px solid var(--borde);padding:10px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+  .estado-badge { padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;text-transform:uppercase; }
+  .nav-registros { display:flex;align-items:center;gap:8px;margin-left:auto; }
+  .nav-registros span { font-size:13px;color:var(--texto-sec);white-space:nowrap; }
+  .btn-nav { width:32px;height:32px;border-radius:50%;border:1.5px solid var(--azul);background:var(--blanco);color:var(--azul);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;transition:all 0.15s; }
+  .btn-nav:hover { background:var(--azul);color:#fff; }
+  .btn-nav:disabled { border-color:var(--gris-medio);color:var(--gris-medio);cursor:not-allowed; }
+  .btn-nav:disabled:hover { background:var(--blanco); }
+
+  .panel-content { display:flex;flex-direction:column;overflow:hidden;flex:1; }
+  .empty-state { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--texto-sec);gap:12px;padding:40px; }
+  .empty-state .icon-big { font-size:48px;opacity:0.3; }
+  .empty-state p { font-size:14px;text-align:center;max-width:300px; }
+
+  /* FICHA */
+  .ficha-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:12px 20px;background:var(--blanco);border-bottom:2px solid var(--borde);flex-shrink:0; }
+  .ficha-field { display:flex;flex-direction:column;gap:2px; }
+  .ficha-label { font-size:10px;font-weight:700;color:var(--texto-sec);text-transform:uppercase;letter-spacing:0.4px; }
+  .ficha-val { font-size:12px;color:var(--texto);padding:2px 0; }
+  .ficha-val.monto { color:var(--verde);font-weight:700; }
+  .ficha-val.bold { font-weight:700; }
+
+  /* HISTORIAL */
+  .hist-section { flex:1;overflow:hidden;padding:6px 20px 10px;display:flex;flex-direction:column; }
+  .hist-header { background:var(--morado);color:#fff;padding:6px 12px;font-size:11px;font-weight:600;border-radius:8px 8px 0 0;flex-shrink:0; }
+  .hist-body { flex:1;overflow-y:auto;overflow-x:auto;border:1px solid var(--borde);border-top:none;border-radius:0 0 8px 8px;background:var(--blanco); }
+  .hist-table { width:100%;border-collapse:collapse;font-size:12px; }
+  .hist-table th { background:#EDE7F6;color:var(--morado);padding:5px 8px;text-align:left;font-weight:600;font-size:11px;border-bottom:1.5px solid #9C27B0;position:sticky;top:0;z-index:1;white-space:nowrap; }
+  .hist-table td { padding:5px 8px;border-bottom:1px solid var(--gris-claro);vertical-align:middle; }
+  .hist-table tr:last-child td { border-bottom:none; }
+  .hist-table tr:hover td { background:#F9F4FF; }
+
+  /* ALERTAS BADGES */
+  .alerta-pendiente { background:var(--amarillo-bg);color:#F57F17;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
+  .alerta-fpl { background:var(--rojo-bg);color:var(--rojo);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
+  .alerta-ok { background:var(--verde-bg);color:var(--verde);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
+  .alerta-recibido { background:var(--azul-bg);color:var(--azul);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
+
+  /* ESTADO FUNDANTE BADGES */
+  .fund-PENDIENTE { background:var(--amarillo-bg);color:#F57F17; }
+  .fund-RECIBIDOS { background:var(--azul-bg);color:var(--azul); }
+  .fund-ENVIADOS { background:var(--cyan-bg);color:var(--cyan); }
+  .fund-PAGADO { background:var(--verde-bg);color:#1B5E20; }
+  .fund-badge { padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;text-transform:uppercase; }
+
+  /* SUBESTADO BADGES */
+  .fsub { padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
+  .fsub-EN_PLAZO,.fsub-OK,.fsub-SALDO_PAGADO { background:var(--verde-bg);color:var(--verde); }
+  .fsub-ATRASADO,.fsub-ATRASADOS,.fsub-SALDO_RETENIDO { background:var(--rojo-bg);color:var(--rojo); }
+  .fsub-EN_PROCESO,.fsub-A_TIEMPO { background:var(--azul-bg);color:var(--azul); }
+  .fsub-INCOMPLETOS,.fsub-SALDO_PENDIENTE { background:var(--amarillo-bg);color:#F57F17; }
+  .fsub-CON_PROBLEMAS { background:var(--naranja-bg);color:var(--naranja); }
+  .fsub-ENVIADOS_SUB { background:var(--morado-bg);color:var(--morado); }
+  .seg-vencido { background:var(--rojo-bg);color:var(--rojo);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600; }
+  .seg-aldia { background:var(--verde-bg);color:var(--verde);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600; }
+  .seg-sin { background:var(--gris-claro);color:var(--gris);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600; }
+
+  /* MODAL */
+  .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.52);display:none;align-items:center;justify-content:center;z-index:500; }
+  .modal-overlay.visible { display:flex; }
+  .modal { background:var(--blanco);border-radius:12px;width:560px;max-width:96vw;box-shadow:0 8px 40px rgba(0,0,0,0.24);overflow:hidden;max-height:92vh;display:flex;flex-direction:column; }
+  .modal-header { background:var(--morado);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+  .modal-header h3 { font-size:15px;font-weight:700; }
+  .modal-sub { font-size:12px;opacity:0.85; }
+  .modal-body { padding:20px;overflow-y:auto;flex:1; }
+  .form-row { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px; }
+  .form-group { display:flex;flex-direction:column;gap:5px; }
+  .form-group label { font-size:12px;font-weight:700;color:var(--texto-sec);text-transform:uppercase;letter-spacing:0.4px; }
+  .form-group select,.form-group input,.form-group textarea { padding:9px 11px;border:1.5px solid var(--borde);border-radius:var(--radio);font-size:13px;font-family:inherit;outline:none;transition:border-color 0.2s;background:var(--blanco); }
+  .form-group select:focus,.form-group input:focus,.form-group textarea:focus { border-color:var(--morado); }
+  .form-group textarea { resize:vertical;min-height:80px; }
+  .modal-footer { padding:14px 20px;border-top:1px solid var(--gris-claro);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0; }
+  .btn-grabar { background:var(--morado);color:#fff;border:none;padding:10px 28px;border-radius:var(--radio);font-size:14px;font-weight:600;cursor:pointer; }
+  .btn-grabar:hover { background:var(--morado-claro); }
+  .btn-grabar:disabled { background:var(--gris-medio);cursor:not-allowed; }
+  .btn-cancelar { background:var(--blanco);color:var(--rojo);border:1.5px solid var(--rojo);padding:10px 28px;border-radius:var(--radio);font-size:14px;font-weight:600;cursor:pointer; }
+  .btn-cancelar:hover { background:var(--rojo-bg); }
+
+  /* MODAL ELIMINAR */
+  #modal-eliminar .modal-header { background:var(--rojo); }
+  .btn-elim { background:var(--rojo);color:#fff;border:none;padding:10px 28px;border-radius:var(--radio);font-size:14px;font-weight:600;cursor:pointer; }
+
+  /* ADMIN */
+  #admin-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:600; }
+  #admin-overlay.visible { display:flex; }
+  .admin-modal { background:#fff;border-radius:14px;width:920px;max-width:97vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 12px 60px rgba(0,0,0,0.28);overflow:hidden; }
+  .admin-header { background:var(--azul);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+  .admin-header h2 { font-size:15px;font-weight:700; }
+  .admin-body { display:flex;flex:1;overflow:hidden; }
+  .admin-list { width:320px;min-width:260px;border-right:1px solid var(--borde);display:flex;flex-direction:column;overflow:hidden; }
+  .admin-list-header { padding:10px 14px;border-bottom:1px solid var(--borde);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+  .admin-list-header span { font-size:12px;font-weight:700;color:var(--texto-sec);text-transform:uppercase;letter-spacing:0.5px; }
+  .btn-add-user { background:var(--verde);color:#fff;border:none;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer; }
+  .admin-user-list { overflow-y:auto;flex:1; }
+  .admin-user-item { padding:10px 14px;border-bottom:1px solid var(--gris-claro);cursor:pointer;transition:background 0.15s;display:flex;align-items:center;gap:10px; }
+  .admin-user-item:hover { background:#F0F4FF; }
+  .admin-user-item.active { background:var(--azul-bg);border-left:3px solid var(--azul); }
+  .admin-user-avatar { width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0; }
+  .avatar-gerente { background:var(--azul); }
+  .avatar-supervisor { background:var(--naranja); }
+  .avatar-usuario { background:var(--verde); }
+  .admin-user-info { flex:1;min-width:0; }
+  .admin-user-email { font-size:12px;font-weight:600;color:var(--texto);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .admin-user-meta { font-size:11px;color:var(--texto-sec);margin-top:2px; }
+  .perfil-badge { display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase; }
+  .perfil-gerente { background:#E3F2FD;color:var(--azul); }
+  .perfil-supervisor { background:#FFF3E0;color:var(--naranja); }
+  .perfil-usuario { background:#E8F5E9;color:var(--verde); }
+  .admin-form-area { flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px; }
+  .admin-empty { flex:1;display:flex;align-items:center;justify-content:center;color:var(--texto-sec);font-size:13px; }
+  .admin-form-title { font-size:14px;font-weight:700;padding-bottom:10px;border-bottom:1px solid var(--borde); }
+  .admin-form-actions { display:flex;gap:10px;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--borde);margin-top:auto; }
+  .btn-guardar-user { background:var(--verde);color:#fff;border:none;padding:8px 20px;border-radius:var(--radio);font-size:13px;font-weight:600;cursor:pointer; }
+  .btn-eliminar-user { background:var(--blanco);color:var(--rojo);border:1.5px solid var(--rojo);padding:8px 20px;border-radius:var(--radio);font-size:13px;font-weight:600;cursor:pointer; }
+  .admin-ej-list { display:flex;flex-direction:column;gap:6px;max-height:120px;overflow-y:auto; }
+  .admin-ej-item { display:flex;align-items:center;gap:8px;font-size:12px; }
+  .btn-remove-ej { background:none;border:none;color:var(--rojo);cursor:pointer;font-size:16px;line-height:1;padding:0 2px; }
+  .btn-add-ej { background:none;border:1.5px solid var(--azul);color:var(--azul);border-radius:var(--radio);padding:4px 10px;font-size:12px;cursor:pointer;margin-top:4px; }
+  .sel-ejecutivo { margin:6px 14px 0;width:calc(100% - 28px);padding:7px 10px;border:1.5px solid var(--borde);border-radius:var(--radio);font-size:13px;font-family:inherit;outline:none;background:var(--blanco);cursor:pointer; }
+  .sel-ejecutivo:focus { border-color:var(--azul); }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p id="loading-msg">Cargando datos...</p>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>📦 Control de Fundantes</h1>
+      <p>Gestión de saldos precio y FEI</p>
+    </div>
+    <label>Usuario</label>
+    <input type="email" id="login-user" placeholder="usuario@autofacilchile.cl" autocomplete="username">
+    <label>Contraseña</label>
+    <input type="password" id="login-pass" placeholder="••••••" autocomplete="current-password">
+    <div class="login-error" id="login-error">Usuario o contraseña incorrectos</div>
+    <button class="btn-login" onclick="doLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <h1>📦 Control de Fundantes <small style="font-size:11px;opacity:0.7">v1.0</small></h1>
+    <div class="header-right">
+      <span id="header-user"></span>
+      <button class="btn-sm" id="btn-informe" style="display:none" onclick="abrirInforme()">📊 Informe</button>
+      <button class="btn-sm" id="btn-admin" style="display:none" onclick="abrirAdmin()">⚙️ Usuarios</button>
+      <button class="btn-sm" id="btn-eliminar" style="display:none;background:rgba(198,40,40,0.3)" onclick="abrirEliminar()">🗑️ Eliminar</button>
+      <button class="btn-sm" onclick="recargarDatos()">🔄 Actualizar</button>
+      <button class="btn-sm" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <!-- PANEL IZQUIERDO -->
+    <div class="panel-left">
+      <div class="panel-left-header">
+        <h2 id="panel-user-label">-</h2>
+        <div class="fecha" id="panel-fecha"></div>
+      </div>
+
+      <div id="filtro-ejec-wrap" style="display:none">
+        <select class="sel-ejecutivo" id="sel-ejec" onchange="filtrarPorEjecutivo(this.value)">
+          <option value="">Todos los ejecutivos</option>
+        </select>
+      </div>
+
+      <!-- UPLOAD -->
+      <div id="upload-section" style="display:none">
+        <label class="upload-area" for="file-input">
+          <span class="icon">📂</span>
+          <div>
+            <p>Cargar detalle_sp_xxxx.xls</p>
+            <small>Solo se importarán OPs nuevas</small>
+          </div>
+        </label>
+        <input type="file" id="file-input" accept=".xlsx,.xls,.htm,.html" onchange="loadExcel(event)">
+        <div class="estado-carga" id="estado-carga"></div>
+      </div>
+
+      <!-- FILTROS RÁPIDOS -->
+      <div class="filtros-container">
+        <div class="filtro-row">
+          <input type="text" id="f-nombre" placeholder="Buscar nombre/OP..." oninput="aplicarFiltroRapido()">
+          <select id="f-alerta-sp" onchange="aplicarFiltroRapido()">
+            <option value="">Alerta SP (todas)</option>
+            <option>PENDIENTE</option>
+            <option value="FUERA">FUERA DE PLAZO</option>
+            <option>RECIBIDO</option>
+          </select>
+        </div>
+        <div class="filtro-row">
+          <select id="f-financiera" onchange="aplicarFiltroRapido()">
+            <option value="">Financiera (todas)</option>
+          </select>
+          <button class="btn-limpiar" onclick="limpiarFiltros()">✕ Limpiar</button>
+        </div>
+      </div>
+
+      <!-- RESUMEN -->
+      <div class="resumen-container">
+        <table class="resumen-table">
+          <thead>
+            <tr>
+              <th>Estado Fundante</th><th>Total</th><th>Vencido</th><th>Al Día</th>
+            </tr>
+          </thead>
+          <tbody id="resumen-body">
+            <tr><td colspan="4" style="text-align:center;color:var(--texto-sec);padding:20px">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <button class="btn-panel btn-nueva-gest" id="btn-nueva-gest" onclick="abrirModal()" disabled>📦 Nueva Gestión</button>
+      <button class="btn-panel btn-exportar" id="btn-exportar" onclick="exportarExcel()" disabled style="margin-bottom:10px">⬇️ Exportar Excel</button>
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="panel-right">
+      <div class="panel-right-header" id="right-header" style="display:none">
+        <span class="fund-badge" id="badge-estado"></span>
+        <input type="text" id="inp-buscar" placeholder="BUSCAR NOMBRE" style="margin-left:auto;padding:7px 12px;border:1.5px solid var(--borde);border-radius:var(--radio);font-size:13px;outline:none;background:var(--blanco);width:200px" oninput="buscarNombre(this.value)">
+        <div class="nav-registros">
+          <span id="nav-label">Registro: — de —</span>
+          <button class="btn-nav" id="btn-prev" onclick="navRegistro(-1)">‹</button>
+          <button class="btn-nav" id="btn-next" onclick="navRegistro(1)">›</button>
+        </div>
+      </div>
+      <div class="panel-content" id="panel-content">
+        <div class="empty-state">
+          <div class="icon-big">📦</div>
+          <p>Seleccione un estado en la tabla para ver los registros</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA GESTIÓN -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div><h3>📦 NUEVA GESTIÓN FUNDANTE</h3><div class="modal-sub" id="modal-sub"></div></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estado Fundante</label>
+          <select id="sel-estado-fund" onchange="actualizarSubestado()">
+            <option value="">-- Seleccione --</option>
+            <option id="opt-pendiente">PENDIENTE</option>
+            <option id="opt-recibidos" style="display:none">RECIBIDOS</option>
+            <option id="opt-enviados" style="display:none">ENVIADOS</option>
+            <option id="opt-pagado" style="display:none">PAGADO</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sub-Estado</label>
+          <select id="sel-subestado"><option value="">-- Seleccione estado primero --</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha Seguimiento <small style="text-transform:none;font-weight:400;color:var(--texto-sec)">(48h háb., máx 5 días)</small></label>
+          <input type="date" id="inp-fecha-seg">
+        </div>
+        <div class="form-group">
+          <label>Monto Fundante</label>
+          <input type="number" id="inp-monto" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Comentario <span style="color:var(--rojo)">*</span></label>
+        <textarea id="inp-comentario" placeholder="Observaciones de la gestión (requerido)..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancelar" onclick="cerrarModal()">CANCELAR</button>
+      <button class="btn-grabar" id="btn-grabar" onclick="grabarGestion()">GRABAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INFORME -->
+<div class="modal-overlay" id="modal-informe">
+  <div class="modal" style="width:720px">
+    <div class="modal-header" style="background:var(--azul)">
+      <div><h3>📊 INFORME CONSOLIDADO FUNDANTES</h3></div>
+      <button onclick="cerrarInforme()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px 20px">
+      <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:130px"><label>Desde</label><input type="date" id="inf-desde"></div>
+        <div class="form-group" style="flex:1;min-width:130px"><label>Hasta</label><input type="date" id="inf-hasta"></div>
+        <button onclick="generarInforme()" style="padding:9px 18px;background:var(--azul);color:#fff;border:none;border-radius:var(--radio);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">🔍 Generar</button>
+        <button id="btn-exportar-inf" onclick="exportarInforme()" style="display:none;padding:9px 18px;background:var(--verde);color:#fff;border:none;border-radius:var(--radio);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">⬇️ Exportar</button>
+      </div>
+      <div id="informe-resultado"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR -->
+<div class="modal-overlay" id="modal-eliminar">
+  <div class="modal" style="width:460px" id="modal-elim-inner">
+    <div class="modal-header" style="background:var(--rojo)">
+      <div><h3>🗑️ ELIMINAR REGISTROS</h3><div class="modal-sub">Seleccione rango de fechas (fecha otorgado)</div></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Desde</label><input type="date" id="del-desde"></div>
+        <div class="form-group"><label>Hasta</label><input type="date" id="del-hasta"></div>
+      </div>
+      <div style="background:var(--rojo-bg);border:1.5px solid var(--rojo);border-radius:var(--radio);padding:10px;font-size:12px;color:var(--rojo);margin-bottom:12px">
+        <strong>⚠️ Advertencia:</strong> Se eliminarán los registros de operaciones y sus gestiones. Acción irreversible.
+      </div>
+      <div id="del-resultado" style="display:none;font-size:12px;margin-bottom:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancelar" onclick="cerrarEliminar()">CANCELAR</button>
+      <button class="btn-elim" onclick="confirmarEliminar()">ELIMINAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div id="admin-overlay">
+  <div class="admin-modal">
+    <div class="admin-header"><h2>⚙️ Administración de Usuarios</h2><button class="btn-sm" onclick="cerrarAdmin()">✕ Cerrar</button></div>
+    <div class="admin-body">
+      <div class="admin-list">
+        <div class="admin-list-header">
+          <span>Usuarios</span>
+          <button class="btn-add-user" onclick="nuevoUser()">+ Nuevo</button>
+        </div>
+        <div class="admin-user-list" id="admin-user-list">
+          <div style="padding:20px;text-align:center;color:var(--texto-sec);font-size:13px">Cargando...</div>
+        </div>
+      </div>
+      <div id="admin-form-area" style="flex:1;overflow-y:auto;">
+        <div class="admin-empty">Selecciona un usuario o crea uno nuevo</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// SUPABASE CONFIG
+// ============================================================
+const SUPABASE_URL = 'https://yrwekbmgahslxmbuhuib.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlyd2VrYm1nYWhzbHhtYnVodWliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzk1NzcsImV4cCI6MjA5MzYxNTU3N30.44Jrg7bm3iYvkiaSJCLoVpOt89pLrkKmzNKXzwQVBFo';'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2anp6ZWZ2aW1hZWdycGhpeGRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTE1NDksImV4cCI6MjA5MDQ2NzU0OX0.aB7emuk7Ypj5vPhht7vpkFuLuhkwSjN_dc3_jh-udLk';
+
+async function sbGet(table, params='') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+async function sbInsert(table, data) {
+  const body = Array.isArray(data) ? data : [data];
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=representation' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+async function sbUpdate(table, id, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+async function sbDelete(table, id) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+async function sbDeleteWhere(table, field, values) {
+  const inList = `(${values.join(',')})`;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${field}=in.${inList}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' }
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+// ============================================================
+// DATOS ESTÁTICOS
+// ============================================================
+const FUND_SUBESTADOS = {
+  'PENDIENTE': ['EN PLAZO', 'ATRASADO', 'CON PROBLEMAS', 'ENVIADOS'],
+  'RECIBIDOS': ['EN PROCESO', 'INCOMPLETOS', 'OK'],
+  'ENVIADOS':  ['A TIEMPO', 'ATRASADOS'],
+  'PAGADO':    ['SALDO PAGADO', 'SALDO PENDIENTE', 'SALDO RETENIDO'],
+};
+const FUND_ESTADOS_ORDEN = ['PENDIENTE', 'RECIBIDOS', 'ENVIADOS', 'PAGADO'];
+// Solo supervisor/gerente pueden cambiar a RECIBIDOS, ENVIADOS, PAGADO
+const ESTADOS_SUP = ['RECIBIDOS', 'ENVIADOS', 'PAGADO'];
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let currentUser = null;
+let operaciones = []; // registros de operaciones (tabla: fund_operaciones)
+let gestiones = [];   // todas las gestiones (tabla: fund_gestiones)
+let filtroEstado = null;
+let registrosFiltrados = [];
+let idxActual = 0;
+let busquedaActiva = false;
+let resultadosBusqueda = [];
+let idxBusqueda = 0;
+let filtroEjecutivo = '';
+let adminUsuarios = [];
+let adminSelIdx = null;
+let adminModo = null;
+let informeDataCache = null;
+
+// ============================================================
+// LOGIN
+// ============================================================
+document.getElementById('login-screen').classList.add('visible');
+
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim().toLowerCase();
+  const p = document.getElementById('login-pass').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  try {
+    const rows = await sbGet('fund_usuarios', `usuario=eq.${encodeURIComponent(u)}&clave=eq.${encodeURIComponent(p)}&limit=1`);
+    if (!rows || rows.length === 0) { errEl.style.display = 'block'; return; }
+    const usr = rows[0];
+    if (typeof usr.ejecutivos === 'string') try { usr.ejecutivos = JSON.parse(usr.ejecutivos); } catch(e){ usr.ejecutivos = []; }
+    currentUser = usr;
+    sbUpdate('fund_usuarios', usr.id, { ultimo_acceso: new Date().toISOString() }).catch(() => {});
+    document.getElementById('login-screen').classList.remove('visible');
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } catch(e) {
+    errEl.textContent = 'Error de conexión: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-pass').focus(); });
+
+function doLogout() {
+  currentUser = null; operaciones = []; gestiones = [];
+  filtroEstado = null; busquedaActiva = false;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').classList.add('visible');
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+// ============================================================
+// INIT APP
+// ============================================================
+async function initApp() {
+  filtroEjecutivo = '';
+  const esGer = currentUser.perfil === 'gerente';
+  const esSup = currentUser.perfil === 'supervisor';
+  const label = esGer ? 'Gerente' : esSup ? 'Supervisor' : 'Ejecutivo';
+  const nombre = currentUser.ejecutivos && currentUser.ejecutivos[0] === 'todos'
+    ? 'Todos los ejecutivos'
+    : (currentUser.ejecutivos && currentUser.ejecutivos[0]) || currentUser.usuario;
+  document.getElementById('header-user').textContent = `${label}: ${nombre}`;
+  document.getElementById('panel-user-label').textContent = nombre;
+  document.getElementById('panel-fecha').textContent = new Date().toLocaleDateString('es-CL', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('upload-section').style.display = esGer ? 'block' : 'none';
+  document.getElementById('btn-informe').style.display = (esGer || esSup) ? 'inline-block' : 'none';
+  document.getElementById('btn-eliminar').style.display = esGer ? 'inline-block' : 'none';
+  document.getElementById('btn-admin').style.display = esGer ? 'inline-block' : 'none';
+  document.getElementById('filtro-ejec-wrap').style.display = (esGer || esSup) ? 'block' : 'none';
+  await recargarDatos();
+}
+
+function loading(show, msg = 'Cargando...') {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-overlay').classList.toggle('visible', show);
+}
+
+// ============================================================
+// CARGA DATOS
+// ============================================================
+async function recargarDatos() {
+  loading(true, 'Cargando operaciones...');
+  try {
+    let opsRaw = await sbGet('fund_operaciones', 'order=op.desc&limit=5000');
+    // Filtrar por ejecutivo asignado si no es gerente/todos
+    if (currentUser.perfil === 'usuario' && currentUser.ejecutivos && currentUser.ejecutivos[0] !== 'todos') {
+      opsRaw = opsRaw.filter(o => {
+        const ej = (o.ej_comercial || '').toUpperCase().trim();
+        return currentUser.ejecutivos.some(e => ej === e.toUpperCase().trim());
+      });
+    } else if (currentUser.perfil === 'supervisor' && currentUser.ejecutivos && currentUser.ejecutivos[0] !== 'todos') {
+      opsRaw = opsRaw.filter(o => {
+        const ej = (o.ej_comercial || '').toUpperCase().trim();
+        return currentUser.ejecutivos.some(e => ej === e.toUpperCase().trim());
+      });
+    }
+
+    const ids = opsRaw.map(o => o.id);
+    let gestRaw = [];
+    if (ids.length > 0) {
+      const inList = `(${ids.join(',')})`;
+      gestRaw = await sbGet('fund_gestiones', `operacion_id=in.${inList}&order=created_at.asc`);
+    }
+    gestiones = gestRaw;
+
+    const gesMap = {};
+    gestRaw.forEach(g => {
+      if (!gesMap[g.operacion_id]) gesMap[g.operacion_id] = [];
+      gesMap[g.operacion_id].push(g);
+    });
+    operaciones = opsRaw.map(o => ({ ...o, gestiones: gesMap[o.id] || [] }));
+
+    // Poblar filtros
+    const ejecs = [...new Set(opsRaw.map(o => o.ej_comercial).filter(Boolean))].sort();
+    const fins = [...new Set(opsRaw.map(o => o.financiera).filter(Boolean))].sort();
+    if (currentUser.perfil !== 'usuario') {
+      const sel = document.getElementById('sel-ejec');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">Todos los ejecutivos</option>';
+      ejecs.forEach(e => { const o = document.createElement('option'); o.value = e; o.textContent = e; if (e === cur) o.selected = true; sel.appendChild(o); });
+    }
+    const selFin = document.getElementById('f-financiera');
+    const curFin = selFin.value;
+    selFin.innerHTML = '<option value="">Financiera (todas)</option>';
+    fins.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = f; if (f === curFin) o.selected = true; selFin.appendChild(o); });
+
+    renderResumen();
+    if (filtroEstado) aplicarFiltro();
+  } catch(err) {
+    mostrarCarga('❌ Error: ' + err.message, true);
+  } finally {
+    loading(false);
+  }
+}
+
+function mostrarCarga(msg, esError = false) {
+  const el = document.getElementById('estado-carga');
+  el.textContent = msg;
+  el.className = 'estado-carga' + (esError ? ' estado-error' : '');
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+
+// ============================================================
+// IMPORTAR EXCEL / HTML-XLS
+// ============================================================
+async function loadExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      loading(true, 'Procesando archivo...');
+      const content = e.target.result;
+      let nuevos = [];
+
+      // Detectar si es HTML disfrazado de XLS
+      if (typeof content === 'string' && content.trim().startsWith('<')) {
+        nuevos = parsearHTMLXLS(content);
+      } else {
+        // Intentar como binario XLSX
+        const wb = XLSX.read(content, { type: 'binary', cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        let headerRow = -1;
+        for (let i = 0; i < raw.length; i++) {
+          if (String(raw[i][0]).trim().toUpperCase() === 'OP') { headerRow = i; break; }
+        }
+        if (headerRow < 0) { loading(false); mostrarCarga('❌ No se encontró fila OP', true); return; }
+        const headers = raw[headerRow].map(h => String(h).trim().toUpperCase());
+        nuevos = raw.slice(headerRow + 1).map(row => mapearFila(headers, row)).filter(Boolean);
+      }
+
+      if (nuevos.length === 0) { loading(false); mostrarCarga('✅ Sin registros nuevos', false); return; }
+
+      const opsExistentes = new Set(operaciones.map(o => String(o.op)));
+      const soloNuevos = nuevos.filter(n => !opsExistentes.has(String(n.op)));
+      if (soloNuevos.length === 0) { loading(false); mostrarCarga(`✅ Sin OPs nuevas. ${opsExistentes.size} ya existían.`); return; }
+
+      loading(true, `Importando ${soloNuevos.length} OPs nuevas...`);
+      for (let i = 0; i < soloNuevos.length; i += 100) {
+        await sbInsert('fund_operaciones', soloNuevos.slice(i, i + 100));
+      }
+      loading(false);
+      mostrarCarga(`✅ Importadas ${soloNuevos.length} OPs nuevas. ${opsExistentes.size} ya existían.`);
+      await recargarDatos();
+    } catch(err) {
+      loading(false);
+      mostrarCarga('❌ Error: ' + err.message, true);
+    }
+  };
+  // Intentar como texto primero para detectar HTML
+  const textReader = new FileReader();
+  textReader.onload = function(ev) {
+    const text = ev.target.result;
+    if (text.trim().startsWith('<') || text.trim().startsWith('\ufeff<')) {
+      // Es HTML
+      reader.onload({ target: { result: text } });
+    } else {
+      reader.readAsBinaryString(file);
+    }
+  };
+  textReader.readAsText(file, 'UTF-8');
+}
+
+function parsearHTMLXLS(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const rows = doc.querySelectorAll('table tr');
+  if (rows.length < 2) return [];
+  const headers = [];
+  rows[0].querySelectorAll('th, td').forEach(th => headers.push(th.textContent.trim().toUpperCase()));
+  const nuevos = [];
+  for (let i = 1; i < rows.length; i++) {
+    const cells = rows[i].querySelectorAll('td');
+    if (cells.length === 0) continue;
+    const row = Array.from(cells).map(c => c.textContent.trim());
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = row[idx] || ''; });
+    const mapped = mapearFilaObj(obj);
+    if (mapped) nuevos.push(mapped);
+  }
+  return nuevos;
+}
+
+function mapearFila(headers, row) {
+  const obj = {};
+  headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? String(row[i]).trim() : ''; });
+  return mapearFilaObj(obj);
+}
+
+function mapearFilaObj(obj) {
+  const op = String(obj['OP'] || '').trim();
+  if (!op || isNaN(op)) return null;
+  return {
+    op: Number(op),
+    rut: obj['RUT'] || '',
+    nombre: obj['NOMBRE'] || '',
+    ej_comercial: obj['EJ.COMERCIAL'] || obj['EJECUTIVO COMERCIAL'] || '',
+    parque: obj['PARQUE'] || '',
+    automotora: obj['AUTOMOTORA'] || '',
+    financiera: obj['FINANCIERA'] || '',
+    mes: obj['MES'] || '',
+    estado_credito: obj['ESTADO CREDITO'] || obj['ESTADO_CREDITO'] || '',
+    fecha_otorgado: obj['FECHA OTORGADO'] || obj['FECHA_OTORGADO'] || '',
+    saldo_precio: parseFloat(String(obj['SALDO PRECIO'] || obj['SALDO_PRECIO'] || '0').replace(/[^0-9.]/g, '')) || 0,
+    alerta_pago_sp: obj['ALERTA PAGO SP'] || obj['ALERTA_PAGO_SP'] || 'PENDIENTE',
+    fecha_recepcion_fei: obj['FECHA RECEPCION FEI'] || obj['FECHA_RECEPCION_FEI'] || '',
+    alerta_recep_fei: obj['ALERTA RECEP FEI'] || obj['ALERTA_RECEP_FEI'] || 'PENDIENTE',
+  };
+}
+
+// ============================================================
+// LÓGICA ESTADOS
+// ============================================================
+function getOpsActivas() {
+  let list = operaciones;
+  if (filtroEjecutivo) list = list.filter(o => (o.ej_comercial || '').toUpperCase().trim() === filtroEjecutivo.toUpperCase().trim());
+  if (currentUser.perfil === 'usuario') {
+    // ejecutivos solo ven PENDIENTE
+    list = list.filter(o => getFundEstado(o) === 'PENDIENTE');
+  }
+  return list;
+}
+
+function getFundEstado(op) {
+  if (!op.gestiones || op.gestiones.length === 0) return 'PENDIENTE';
+  const ult = op.gestiones[op.gestiones.length - 1];
+  const est = (ult.estado_fundante || '').toUpperCase();
+  return FUND_ESTADOS_ORDEN.includes(est) ? est : 'PENDIENTE';
+}
+
+function getFundSeguimiento(op) {
+  if (!op.gestiones || op.gestiones.length === 0) return 'SIN_SEG';
+  const ult = op.gestiones[op.gestiones.length - 1];
+  const fs = ult.fecha_seguimiento ? new Date(ult.fecha_seguimiento + 'T00:00:00') : null;
+  if (!fs) return 'SIN_SEG';
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  return fs < hoy ? 'VENCIDO' : 'AL_DIA';
+}
+
+// ============================================================
+// FILTROS RÁPIDOS
+// ============================================================
+function aplicarFiltroRapido() {
+  // Solo actualiza el resumen y vista si ya hay filtro de estado activo
+  if (filtroEstado) aplicarFiltro();
+  else renderResumen();
+}
+
+function limpiarFiltros() {
+  document.getElementById('f-nombre').value = '';
+  document.getElementById('f-alerta-sp').value = '';
+  document.getElementById('f-financiera').value = '';
+  aplicarFiltroRapido();
+}
+
+function getFiltroRapido() {
+  return {
+    nombre: document.getElementById('f-nombre').value.trim().toLowerCase(),
+    alertaSp: document.getElementById('f-alerta-sp').value,
+    financiera: document.getElementById('f-financiera').value,
+  };
+}
+
+function pasaFiltroRapido(op) {
+  const f = getFiltroRapido();
+  if (f.nombre && !( (op.nombre || '').toLowerCase().includes(f.nombre) || String(op.op).includes(f.nombre) )) return false;
+  if (f.financiera && (op.financiera || '') !== f.financiera) return false;
+  if (f.alertaSp === 'PENDIENTE' && !(op.alerta_pago_sp || '').toUpperCase().includes('PENDIENTE')) return false;
+  if (f.alertaSp === 'FUERA' && !(op.alerta_pago_sp || '').toUpperCase().includes('FUERA')) return false;
+  if (f.alertaSp === 'RECIBIDO' && !(op.alerta_pago_sp || '').toUpperCase().includes('RECIBIDO')) return false;
+  return true;
+}
+
+// ============================================================
+// RESUMEN
+// ============================================================
+function renderResumen() {
+  const contadores = {};
+  FUND_ESTADOS_ORDEN.forEach(e => contadores[e] = { total: 0, vencido: 0, alDia: 0 });
+  getOpsActivas().filter(pasaFiltroRapido).forEach(op => {
+    const est = getFundEstado(op);
+    const seg = getFundSeguimiento(op);
+    if (!contadores[est]) contadores[est] = { total: 0, vencido: 0, alDia: 0 };
+    contadores[est].total++;
+    if (seg === 'VENCIDO') contadores[est].vencido++;
+    else contadores[est].alDia++;
+  });
+  const totales = { total: 0, vencido: 0, alDia: 0 };
+  FUND_ESTADOS_ORDEN.forEach(e => { totales.total += contadores[e].total; totales.vencido += contadores[e].vencido; totales.alDia += contadores[e].alDia; });
+
+  const tbody = document.getElementById('resumen-body');
+  tbody.innerHTML = '';
+  const estadosMostrar = currentUser.perfil === 'usuario' ? ['PENDIENTE'] : FUND_ESTADOS_ORDEN;
+  estadosMostrar.forEach(est => {
+    const c = contadores[est];
+    const ia = filtroEstado === est;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600">${est}</td>
+      <td class="celda-clic ${ia ? 'celda-activa' : ''}" onclick="selFiltro('${est}')">${c.total}</td>
+      <td class="celda-clic ${ia ? 'celda-activa' : ''}" onclick="selFiltro('${est}')">
+        <span style="${!ia ? 'background:var(--rojo-bg);color:var(--rojo);border-radius:3px;padding:1px 5px;font-weight:700' : ''}">${c.vencido}</span>
+      </td>
+      <td class="celda-clic ${ia ? 'celda-activa' : ''}" onclick="selFiltro('${est}')">
+        <span style="${!ia ? 'background:var(--verde-bg);color:var(--verde);border-radius:3px;padding:1px 5px;font-weight:600' : ''}">${c.alDia}</span>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  const trT = document.createElement('tr');
+  trT.className = 'fila-total';
+  trT.innerHTML = `<td>TOTAL</td><td>${totales.total}</td><td>${totales.vencido}</td><td>${totales.alDia}</td>`;
+  tbody.appendChild(trT);
+}
+
+function selFiltro(estado) {
+  busquedaActiva = false; resultadosBusqueda = []; idxBusqueda = 0;
+  if (document.getElementById('inp-buscar')) document.getElementById('inp-buscar').value = '';
+  filtroEstado = estado; idxActual = 0;
+  renderResumen(); aplicarFiltro();
+}
+
+function aplicarFiltro() {
+  if (!filtroEstado) return;
+  registrosFiltrados = getOpsActivas().filter(op => getFundEstado(op) === filtroEstado && pasaFiltroRapido(op));
+  renderPanelDerecho();
+}
+
+function filtrarPorEjecutivo(val) {
+  filtroEjecutivo = val; filtroEstado = null; idxActual = 0;
+  busquedaActiva = false; resultadosBusqueda = [];
+  document.getElementById('panel-user-label').textContent = val || 'Todos los ejecutivos';
+  renderResumen();
+  document.getElementById('right-header').style.display = 'none';
+  document.getElementById('btn-nueva-gest').disabled = true;
+  document.getElementById('btn-exportar').disabled = true;
+  document.getElementById('panel-content').innerHTML = '<div class="empty-state"><div class="icon-big">📦</div><p>Seleccione un estado en la tabla</p></div>';
+}
+
+// ============================================================
+// PANEL DERECHO
+// ============================================================
+function renderPanelDerecho() {
+  const header = document.getElementById('right-header');
+  const content = document.getElementById('panel-content');
+  if (!filtroEstado || registrosFiltrados.length === 0) {
+    header.style.display = 'none';
+    document.getElementById('btn-nueva-gest').disabled = true;
+    document.getElementById('btn-exportar').disabled = true;
+    content.innerHTML = `<div class="empty-state"><div class="icon-big">📦</div><p>${filtroEstado ? 'No hay registros en este estado' : 'Seleccione un estado en la tabla'}</p></div>`;
+    return;
+  }
+  header.style.display = 'flex';
+  document.getElementById('btn-nueva-gest').disabled = false;
+  document.getElementById('btn-exportar').disabled = false;
+  const badge = document.getElementById('badge-estado');
+  badge.textContent = filtroEstado;
+  badge.className = `fund-badge fund-${filtroEstado}`;
+  document.getElementById('nav-label').textContent = `Registro: ${idxActual + 1} de ${registrosFiltrados.length}`;
+  document.getElementById('btn-prev').disabled = idxActual === 0;
+  document.getElementById('btn-next').disabled = idxActual === registrosFiltrados.length - 1;
+  renderFicha(registrosFiltrados[idxActual]);
+}
+
+function navRegistro(dir) {
+  if (busquedaActiva) {
+    idxBusqueda = Math.max(0, Math.min(resultadosBusqueda.length - 1, idxBusqueda + dir));
+    mostrarFichaBusqueda();
+  } else {
+    idxActual = Math.max(0, Math.min(registrosFiltrados.length - 1, idxActual + dir));
+    renderPanelDerecho();
+  }
+}
+
+function buscarNombre(termino) {
+  termino = termino.trim().toLowerCase();
+  if (!termino) { busquedaActiva = false; resultadosBusqueda = []; idxBusqueda = 0; renderPanelDerecho(); return; }
+  if (!filtroEstado) return;
+  resultadosBusqueda = registrosFiltrados.filter(o => (o.nombre || '').toLowerCase().includes(termino) || String(o.op).includes(termino));
+  busquedaActiva = true; idxBusqueda = 0;
+  if (resultadosBusqueda.length === 0) {
+    document.getElementById('panel-content').innerHTML = '<div class="empty-state"><div class="icon-big">🔍</div><p>Sin resultados</p></div>';
+    document.getElementById('nav-label').textContent = 'Búsqueda: sin resultados';
+    document.getElementById('btn-prev').disabled = true; document.getElementById('btn-next').disabled = true; return;
+  }
+  mostrarFichaBusqueda();
+}
+
+function mostrarFichaBusqueda() {
+  const op = resultadosBusqueda[idxBusqueda];
+  document.getElementById('nav-label').textContent = `Búsqueda: ${idxBusqueda + 1} de ${resultadosBusqueda.length}`;
+  document.getElementById('btn-prev').disabled = idxBusqueda === 0;
+  document.getElementById('btn-next').disabled = idxBusqueda === resultadosBusqueda.length - 1;
+  renderFicha(op);
+}
+
+function fmt(n) { if (!n || isNaN(n)) return '-'; return '$' + Number(n).toLocaleString('es-CL'); }
+
+function alertaBadge(alerta) {
+  if (!alerta) return '-';
+  const a = String(alerta).toUpperCase();
+  if (a.includes('FUERA') || a.includes('DÍAS') || a.includes('DIAS')) return `<span class="alerta-fpl">${alerta}</span>`;
+  if (a === 'PENDIENTE') return `<span class="alerta-pendiente">PENDIENTE</span>`;
+  if (a.includes('RECIBIDO') || a.includes('OK') || a.includes('DÍA') || a.includes('DIA')) return `<span class="alerta-ok">${alerta}</span>`;
+  return `<span class="alerta-pendiente">${alerta}</span>`;
+}
+
+function subBadge(sub) {
+  if (!sub) return '-';
+  const key = sub.replace(/\s/g, '_').toUpperCase();
+  return `<span class="fsub fsub-${key}">${sub}</span>`;
+}
+
+function segBadge(seg) {
+  if (seg === 'VENCIDO') return '<span class="seg-vencido">SEG. VENCIDO</span>';
+  if (seg === 'AL_DIA') return '<span class="seg-aldia">AL DÍA</span>';
+  return '<span class="seg-sin">SIN SEG.</span>';
+}
+
+function renderFicha(op) {
+  const est = getFundEstado(op);
+  const seg = getFundSeguimiento(op);
+  const ult = op.gestiones && op.gestiones.length > 0 ? op.gestiones[op.gestiones.length - 1] : null;
+
+  let histHTML = '';
+  if (op.gestiones && op.gestiones.length > 0) {
+    histHTML = op.gestiones.slice().reverse().map(g => {
+      const fechaG = new Date(g.created_at).toLocaleString('es-CL', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      const fs = g.fecha_seguimiento ? (() => {
+        const hoy = new Date(); hoy.setHours(0,0,0,0);
+        const d = new Date(g.fecha_seguimiento + 'T00:00:00');
+        const cls = d < hoy ? 'seg-vencido' : 'seg-aldia';
+        return `<span class="${cls}">${g.fecha_seguimiento} ${d < hoy ? 'VENCIDO' : 'AL DÍA'}</span>`;
+      })() : '-';
+      return `<tr>
+        <td style="white-space:nowrap">${fechaG}</td>
+        <td>${subBadge(g.estado_fundante)}</td>
+        <td>${subBadge(g.sub_estado)}</td>
+        <td>${g.monto_fundante ? fmt(g.monto_fundante) : '-'}</td>
+        <td>${fs}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${g.comentario||''}">${g.comentario||''}</td>
+        <td style="font-size:11px;color:var(--texto-sec)">${g.usuario||''}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    histHTML = '<tr><td colspan="7" style="text-align:center;color:var(--texto-sec);padding:14px">Sin gestiones registradas</td></tr>';
+  }
+
+  document.getElementById('panel-content').innerHTML = `
+    <div class="ficha-grid">
+      <div class="ficha-field"><div class="ficha-label">OP</div><div class="ficha-val bold">${op.op}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Nombre</div><div class="ficha-val bold">${op.nombre}</div></div>
+      <div class="ficha-field"><div class="ficha-label">RUT</div><div class="ficha-val">${op.rut}</div></div>
+      <div class="ficha-field"><div class="ficha-label">EJ. Comercial</div><div class="ficha-val">${op.ej_comercial||'-'}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Automotora</div><div class="ficha-val">${op.automotora||'-'}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Financiera</div><div class="ficha-val">${op.financiera||'-'}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Parque</div><div class="ficha-val">${op.parque||'-'}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Mes</div><div class="ficha-val">${op.mes||'-'}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Estado Crédito</div><div class="ficha-val">${op.estado_credito||'-'}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Fecha Otorgado</div><div class="ficha-val">${op.fecha_otorgado||'-'}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Saldo Precio</div><div class="ficha-val monto">${fmt(op.saldo_precio)}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Alerta Pago SP</div><div class="ficha-val">${alertaBadge(op.alerta_pago_sp)}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Fecha Recep. FEI</div><div class="ficha-val">${op.fecha_recepcion_fei||'-'}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Alerta Recep. FEI</div><div class="ficha-val">${alertaBadge(op.alerta_recep_fei)}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Estado Fundante</div><div class="ficha-val">${subBadge(est)} &nbsp; ${segBadge(seg)}</div></div>
+    </div>
+    <div class="hist-section">
+      <div class="hist-header">📋 Historial de Gestiones Fundantes (más reciente primero)</div>
+      <div class="hist-body">
+        <table class="hist-table">
+          <thead><tr><th>Fecha Gestión</th><th>Estado</th><th>Sub-Estado</th><th>Monto</th><th>Fecha Seg.</th><th>Comentario</th><th>Usuario</th></tr></thead>
+          <tbody>${histHTML}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// MODAL GESTIÓN
+// ============================================================
+function calcFechaSeg(dias) {
+  let d = new Date(); let count = 0;
+  while (count < dias) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) count++; }
+  return d.toISOString().split('T')[0];
+}
+
+function abrirModal() {
+  const lista = busquedaActiva ? resultadosBusqueda : registrosFiltrados;
+  const idx = busquedaActiva ? idxBusqueda : idxActual;
+  if (!lista[idx]) return;
+  const op = lista[idx];
+  const now = new Date();
+  document.getElementById('modal-sub').textContent = `OP: ${op.op} — ${op.nombre} | ${now.toLocaleDateString('es-CL')} ${now.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})} hrs`;
+  document.getElementById('sel-estado-fund').value = '';
+  document.getElementById('sel-subestado').innerHTML = '<option value="">-- Seleccione estado primero --</option>';
+  document.getElementById('inp-fecha-seg').value = calcFechaSeg(2);
+  document.getElementById('inp-fecha-seg').max = calcFechaSeg(5);
+  document.getElementById('inp-monto').value = '';
+  document.getElementById('inp-comentario').value = '';
+  document.getElementById('btn-grabar').disabled = false;
+  // Mostrar opciones según perfil
+  document.getElementById('opt-pendiente').style.display = '';
+  document.getElementById('opt-recibidos').style.display = currentUser.perfil !== 'usuario' ? '' : 'none';
+  document.getElementById('opt-enviados').style.display = currentUser.perfil !== 'usuario' ? '' : 'none';
+  document.getElementById('opt-pagado').style.display = currentUser.perfil !== 'usuario' ? '' : 'none';
+  document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function cerrarModal() { document.getElementById('modal-overlay').classList.remove('visible'); }
+
+function actualizarSubestado() {
+  const est = document.getElementById('sel-estado-fund').value;
+  const sel = document.getElementById('sel-subestado');
+  sel.innerHTML = '<option value="">-- Seleccione --</option>';
+  (FUND_SUBESTADOS[est] || []).forEach(m => {
+    const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o);
+  });
+}
+
+async function grabarGestion() {
+  const estado = document.getElementById('sel-estado-fund').value;
+  const subestado = document.getElementById('sel-subestado').value;
+  const comentario = document.getElementById('inp-comentario').value.trim();
+  if (!estado || !subestado) { alert('Seleccione Estado y Sub-Estado'); return; }
+  if (!comentario) { alert('El comentario es requerido'); return; }
+
+  const lista = busquedaActiva ? resultadosBusqueda : registrosFiltrados;
+  const idx = busquedaActiva ? idxBusqueda : idxActual;
+  const op = lista[idx];
+  if (!op) return;
+
+  const btn = document.getElementById('btn-grabar');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    await sbInsert('fund_gestiones', {
+      operacion_id: op.id,
+      estado_fundante: estado,
+      sub_estado: subestado,
+      monto_fundante: Number(document.getElementById('inp-monto').value) || null,
+      fecha_seguimiento: document.getElementById('inp-fecha-seg').value || null,
+      comentario,
+      usuario: currentUser.usuario,
+    });
+    cerrarModal();
+    await recargarDatos();
+    aplicarFiltro();
+    const newIdx = registrosFiltrados.findIndex(r => r.id === op.id);
+    if (newIdx >= 0) { idxActual = newIdx; renderPanelDerecho(); }
+  } catch(err) {
+    alert('Error al guardar: ' + err.message);
+    btn.disabled = false; btn.textContent = 'GRABAR';
+  }
+}
+
+document.getElementById('modal-overlay').addEventListener('click', function(e) { if (e.target === this) cerrarModal(); });
+
+// ============================================================
+// EXPORTAR
+// ============================================================
+function exportarExcel() {
+  const lista = busquedaActiva ? resultadosBusqueda : registrosFiltrados;
+  if (!lista || lista.length === 0) return;
+  const rows = lista.map(op => {
+    const ult = op.gestiones && op.gestiones.length > 0 ? op.gestiones[op.gestiones.length - 1] : {};
+    return {
+      'OP': op.op, 'RUT': op.rut, 'Nombre': op.nombre, 'Ej.Comercial': op.ej_comercial,
+      'Parque': op.parque, 'Automotora': op.automotora, 'Financiera': op.financiera,
+      'Mes': op.mes, 'Estado Crédito': op.estado_credito, 'Fecha Otorgado': op.fecha_otorgado,
+      'Saldo Precio': op.saldo_precio, 'Alerta Pago SP': op.alerta_pago_sp,
+      'Fecha Recep. FEI': op.fecha_recepcion_fei, 'Alerta Recep. FEI': op.alerta_recep_fei,
+      'Estado Fundante': ult.estado_fundante || '', 'Sub-Estado': ult.sub_estado || '',
+      'Monto Fundante': ult.monto_fundante || '', 'Fecha Seguimiento': ult.fecha_seguimiento || '',
+      'Comentario': ult.comentario || '', 'Usuario Gestión': ult.usuario || '',
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Fundantes');
+  XLSX.writeFile(wb, `Fundantes_${filtroEstado || 'todos'}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ============================================================
+// INFORME
+// ============================================================
+function abrirInforme() {
+  const hoy = new Date();
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const primerMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  document.getElementById('inf-desde').value = fmt(primerMes);
+  document.getElementById('inf-hasta').value = fmt(hoy);
+  document.getElementById('informe-resultado').innerHTML = '<p style="color:var(--texto-sec);text-align:center;padding:20px">Presione Generar</p>';
+  document.getElementById('btn-exportar-inf').style.display = 'none';
+  document.getElementById('modal-informe').classList.add('visible');
+}
+function cerrarInforme() { document.getElementById('modal-informe').classList.remove('visible'); }
+
+function generarInforme() {
+  const desde = document.getElementById('inf-desde').value;
+  const hasta = document.getElementById('inf-hasta').value;
+  if (!desde || !hasta) { alert('Seleccione rango'); return; }
+  const dDesde = new Date(desde + 'T00:00:00');
+  const dHasta = new Date(hasta + 'T23:59:59');
+  const opsF = operaciones.filter(op => {
+    const fo = op.fecha_otorgado ? new Date(op.fecha_otorgado + 'T00:00:00') : null;
+    return fo && fo >= dDesde && fo <= dHasta;
+  });
+  if (opsF.length === 0) {
+    document.getElementById('informe-resultado').innerHTML = '<p style="color:var(--rojo);text-align:center;padding:20px">Sin registros en el rango</p>';
+    document.getElementById('btn-exportar-inf').style.display = 'none'; return;
+  }
+  const resumen = {};
+  opsF.forEach(op => {
+    const ej = op.ej_comercial || 'Sin ejecutivo';
+    const est = getFundEstado(op);
+    if (!resumen[ej]) resumen[ej] = {};
+    if (!resumen[ej][est]) resumen[ej][est] = { cantidad: 0, monto: 0 };
+    resumen[ej][est].cantidad++;
+    resumen[ej][est].monto += Number(op.saldo_precio) || 0;
+  });
+  const ejecs = Object.keys(resumen).sort();
+  informeDataCache = { resumen, ejecs, estados: FUND_ESTADOS_ORDEN, desde, hasta, total: opsF.length };
+  let html = `<div style="font-size:11px;color:var(--texto-sec);margin-bottom:8px">Período: <strong>${desde}</strong> al <strong>${hasta}</strong> — OPs: <strong>${opsF.length}</strong></div>`;
+  html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html += '<thead><tr><th style="background:var(--azul);color:#fff;padding:6px 10px;text-align:left;position:sticky;top:0;white-space:nowrap">Ejecutivo</th>';
+  FUND_ESTADOS_ORDEN.forEach(e => { html += `<th colspan="2" style="background:var(--azul);color:#fff;padding:6px 6px;text-align:center;position:sticky;top:0;white-space:nowrap;border-left:1px solid rgba(255,255,255,0.2)">${e}</th>`; });
+  html += '<th colspan="2" style="background:#0D2B5E;color:#fff;padding:6px 6px;text-align:center;position:sticky;top:0;white-space:nowrap;border-left:1px solid rgba(255,255,255,0.2)">TOTAL</th></tr>';
+  html += '<tr><th style="background:#E8EEF8;padding:4px 10px;font-size:10px;text-align:left"></th>';
+  FUND_ESTADOS_ORDEN.forEach(() => { html += '<th style="background:#E8EEF8;padding:4px 5px;font-size:10px;text-align:center;border-left:1px solid var(--borde)">N°</th><th style="background:#E8EEF8;padding:4px 5px;font-size:10px;text-align:right">Monto</th>'; });
+  html += '<th style="background:#C5CAE9;padding:4px 5px;font-size:10px;text-align:center;border-left:1px solid var(--borde)">N°</th><th style="background:#C5CAE9;padding:4px 5px;font-size:10px;text-align:right">Monto</th></tr></thead><tbody>';
+  const totGen = {}; FUND_ESTADOS_ORDEN.forEach(e => totGen[e] = { cantidad: 0, monto: 0 });
+  ejecs.forEach((ej, idx) => {
+    const bg = idx % 2 === 0 ? '#fff' : '#F8F9FB';
+    html += `<tr style="background:${bg}"><td style="padding:5px 10px;font-weight:600;white-space:nowrap;border-bottom:1px solid var(--gris-claro)">${ej}</td>`;
+    let te = { cantidad: 0, monto: 0 };
+    FUND_ESTADOS_ORDEN.forEach(e => {
+      const d = (resumen[ej][e] || { cantidad: 0, monto: 0 });
+      totGen[e].cantidad += d.cantidad; totGen[e].monto += d.monto;
+      te.cantidad += d.cantidad; te.monto += d.monto;
+      html += `<td style="padding:5px;text-align:center;border-left:1px solid var(--gris-claro);border-bottom:1px solid var(--gris-claro);${d.cantidad>0?'font-weight:600;color:var(--azul)':'color:#ccc'}">${d.cantidad||'-'}</td>`;
+      html += `<td style="padding:5px;text-align:right;border-bottom:1px solid var(--gris-claro);font-size:11px;color:var(--verde)">${d.monto>0?'$'+d.monto.toLocaleString('es-CL'):''}</td>`;
+    });
+    html += `<td style="padding:5px;text-align:center;font-weight:700;border-left:1px solid var(--borde);border-bottom:1px solid var(--gris-claro);color:var(--azul)">${te.cantidad}</td>`;
+    html += `<td style="padding:5px;text-align:right;font-weight:700;border-bottom:1px solid var(--gris-claro);font-size:11px;color:var(--verde)">$${te.monto.toLocaleString('es-CL')}</td></tr>`;
+  });
+  let gtC = 0, gtM = 0;
+  html += '<tr style="background:#E8EEF8;font-weight:700"><td style="padding:6px 10px;border-top:2px solid var(--azul)">TOTAL</td>';
+  FUND_ESTADOS_ORDEN.forEach(e => {
+    gtC += totGen[e].cantidad; gtM += totGen[e].monto;
+    html += `<td style="padding:6px 5px;text-align:center;border-left:1px solid var(--borde);border-top:2px solid var(--azul);color:var(--azul)">${totGen[e].cantidad||'-'}</td>`;
+    html += `<td style="padding:6px 5px;text-align:right;border-top:2px solid var(--azul);font-size:11px;color:var(--verde)">${totGen[e].monto>0?'$'+totGen[e].monto.toLocaleString('es-CL'):''}</td>`;
+  });
+  html += `<td style="padding:6px 5px;text-align:center;border-left:1px solid var(--borde);border-top:2px solid var(--azul);color:var(--azul)">${gtC}</td>`;
+  html += `<td style="padding:6px 5px;text-align:right;border-top:2px solid var(--azul);font-size:11px;color:var(--verde)">$${gtM.toLocaleString('es-CL')}</td></tr></tbody></table></div>`;
+  document.getElementById('informe-resultado').innerHTML = html;
+  document.getElementById('btn-exportar-inf').style.display = 'inline-block';
+}
+
+function exportarInforme() {
+  if (!informeDataCache) return;
+  const { resumen, ejecs, estados, desde, hasta } = informeDataCache;
+  let csv = `\uFEFFINFORME FUNDANTES\nPeríodo:,${desde},al,${hasta}\n\n`;
+  let h = 'Ejecutivo'; estados.forEach(e => { h += `,${e} N°,${e} Monto`; }); h += ',TOTAL N°,TOTAL Monto\n'; csv += h;
+  ejecs.forEach(ej => {
+    let row = `"${ej}"`; let tc = 0, tm = 0;
+    estados.forEach(e => { const d = resumen[ej][e] || { cantidad: 0, monto: 0 }; tc += d.cantidad; tm += d.monto; row += `,${d.cantidad},${d.monto}`; });
+    row += `,${tc},${tm}\n`; csv += row;
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `Informe_Fundantes_${desde}_${hasta}.csv`; a.click();
+}
+
+document.getElementById('modal-informe').addEventListener('click', function(e) { if (e.target === this) cerrarInforme(); });
+
+// ============================================================
+// ELIMINAR
+// ============================================================
+function abrirEliminar() {
+  const hoy = new Date();
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('del-desde').value = fmt(new Date(hoy.getFullYear(), 0, 1));
+  document.getElementById('del-hasta').value = fmt(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
+  document.getElementById('del-resultado').style.display = 'none';
+  document.getElementById('modal-eliminar').classList.add('visible');
+}
+function cerrarEliminar() { document.getElementById('modal-eliminar').classList.remove('visible'); }
+
+async function confirmarEliminar() {
+  const desde = document.getElementById('del-desde').value;
+  const hasta = document.getElementById('del-hasta').value;
+  if (!desde || !hasta) { alert('Seleccione ambas fechas'); return; }
+  const dDesde = new Date(desde + 'T00:00:00');
+  const dHasta = new Date(hasta + 'T23:59:59');
+  const aEliminar = operaciones.filter(op => {
+    const fo = op.fecha_otorgado ? new Date(op.fecha_otorgado + 'T00:00:00') : null;
+    return fo && fo >= dDesde && fo <= dHasta;
+  });
+  if (aEliminar.length === 0) { alert('Sin registros en ese rango'); return; }
+  if (!confirm(`¿Eliminar ${aEliminar.length} operaciones y sus gestiones?\n\nRango: ${desde} al ${hasta}\n\nAcción irreversible.`)) return;
+  try {
+    loading(true, `Eliminando ${aEliminar.length} operaciones...`);
+    const ids = aEliminar.map(o => o.id);
+    for (let i = 0; i < ids.length; i += 100) {
+      const batch = ids.slice(i, i + 100);
+      await sbDeleteWhere('fund_gestiones', 'operacion_id', batch);
+      await sbDeleteWhere('fund_operaciones', 'id', batch);
+    }
+    loading(false);
+    const el = document.getElementById('del-resultado');
+    el.style.color = 'var(--verde)'; el.textContent = `✅ Eliminadas ${aEliminar.length} operaciones`;
+    el.style.display = 'block';
+    setTimeout(() => { cerrarEliminar(); recargarDatos(); }, 2000);
+  } catch(err) {
+    loading(false);
+    const el = document.getElementById('del-resultado');
+    el.style.color = 'var(--rojo)'; el.textContent = `❌ Error: ${err.message}`; el.style.display = 'block';
+  }
+}
+
+document.getElementById('modal-eliminar').addEventListener('click', function(e) { if (e.target === this) cerrarEliminar(); });
+
+// ============================================================
+// ADMIN USUARIOS
+// ============================================================
+async function abrirAdmin() { document.getElementById('admin-overlay').classList.add('visible'); await cargarAdminUsuarios(); }
+function cerrarAdmin() { document.getElementById('admin-overlay').classList.remove('visible'); adminSelIdx = null; adminModo = null; }
+
+async function cargarAdminUsuarios() {
+  try { adminUsuarios = await sbGet('fund_usuarios', 'order=perfil.asc,usuario.asc'); renderAdminLista(); renderAdminFormEmpty(); }
+  catch(e) { alert('Error cargando usuarios: ' + e.message); }
+}
+
+function renderAdminLista() {
+  const ul = document.getElementById('admin-user-list');
+  if (!adminUsuarios.length) { ul.innerHTML = '<div style="padding:20px;text-align:center;color:var(--texto-sec);font-size:13px">Sin usuarios</div>'; return; }
+  ul.innerHTML = adminUsuarios.map((u, i) => {
+    const cls = i === adminSelIdx ? ' active' : '';
+    const last = u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Nunca';
+    const ejs = Array.isArray(u.ejecutivos) ? u.ejecutivos : (u.ejecutivos ? JSON.parse(u.ejecutivos) : []);
+    return `<div class="admin-user-item${cls}" onclick="seleccionarUser(${i})">
+      <div class="admin-user-avatar avatar-${u.perfil}">${u.usuario[0].toUpperCase()}</div>
+      <div class="admin-user-info">
+        <div class="admin-user-email">${u.usuario}</div>
+        <div class="admin-user-meta"><span class="perfil-badge perfil-${u.perfil}">${u.perfil}</span> · ${ejs[0]==='todos'?'Todos':(ejs[0]||'-')}</div>
+        <div style="font-size:10px;color:var(--gris-medio);margin-top:1px">Último acceso: ${last}</div>
+      </div></div>`;
+  }).join('');
+}
+
+function seleccionarUser(i) { adminSelIdx = i; adminModo = 'editar'; renderAdminLista(); renderAdminFormEditar(adminUsuarios[i]); }
+function renderAdminFormEmpty() { document.getElementById('admin-form-area').innerHTML = '<div class="admin-empty">Selecciona un usuario o crea uno nuevo</div>'; }
+
+function renderAdminFormEditar(u) {
+  const ejs = Array.isArray(u.ejecutivos) ? u.ejecutivos : (u.ejecutivos ? JSON.parse(u.ejecutivos) : []);
+  const ejsF = ejs.filter(e => e !== 'todos');
+  const ejHtml = ejsF.map((e, i) =>
+    `<div class="admin-ej-item"><input type="text" style="flex:1;padding:5px 8px;border:1.5px solid var(--borde);border-radius:6px;font-size:12px" value="${e}" id="af-ej-val-${i}"><button class="btn-remove-ej" onclick="this.parentElement.remove()">×</button></div>`
+  ).join('');
+  document.getElementById('admin-form-area').innerHTML = `
+    <div class="admin-form-title">${adminModo === 'nuevo' ? '➕ Nuevo Usuario' : '✏️ Editar Usuario'}</div>
+    <div class="form-group"><label>Email (usuario)</label><input type="email" id="af-email" value="${u.usuario||''}" placeholder="nombre@autofacilchile.cl"></div>
+    <div class="form-row" style="margin-bottom:0">
+      <div class="form-group"><label>Contraseña</label><input type="text" id="af-clave" value="${u.clave||''}" placeholder="Ej: A1234"></div>
+      <div class="form-group"><label>Perfil</label>
+        <select id="af-perfil" onchange="onPerfilChange()">
+          <option value="usuario"${u.perfil==='usuario'?' selected':''}>Ejecutivo</option>
+          <option value="supervisor"${u.perfil==='supervisor'?' selected':''}>Supervisor</option>
+          <option value="gerente"${u.perfil==='gerente'?' selected':''}>Gerente</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" id="af-ej-group" style="${u.perfil==='gerente'?'display:none':''}">
+      <label>Ejecutivos asignados</label>
+      <div class="admin-ej-list" id="af-ej-list">${ejHtml}</div>
+      <button class="btn-add-ej" onclick="addEjecutivo()">+ Agregar ejecutivo</button>
+    </div>
+    <div class="admin-form-actions">
+      ${adminModo==='editar'?`<button class="btn-eliminar-user" onclick="eliminarUser()">Eliminar</button>`:''}
+      <button class="btn-guardar-user" onclick="guardarUser()">Guardar</button>
+    </div>`;
+}
+
+function onPerfilChange() { document.getElementById('af-ej-group').style.display = document.getElementById('af-perfil').value === 'gerente' ? 'none' : ''; }
+let _ejC = 0;
+function addEjecutivo() {
+  _ejC++;
+  const li = document.getElementById('af-ej-list');
+  const div = document.createElement('div'); div.className = 'admin-ej-item';
+  div.innerHTML = '<input type="text" style="flex:1;padding:5px 8px;border:1.5px solid var(--borde);border-radius:6px;font-size:12px" placeholder="Nombre ejecutivo"><button class="btn-remove-ej" onclick="this.parentElement.remove()">×</button>';
+  li.appendChild(div);
+}
+function getEjecsForm() {
+  if (document.getElementById('af-perfil').value === 'gerente') return ['todos'];
+  return Array.from(document.querySelectorAll('#af-ej-list input')).map(i => i.value.trim()).filter(Boolean);
+}
+async function guardarUser() {
+  const email = document.getElementById('af-email').value.trim().toLowerCase();
+  const clave = document.getElementById('af-clave').value.trim();
+  const perfil = document.getElementById('af-perfil').value;
+  const ejecutivos = getEjecsForm();
+  if (!email || !clave) { alert('Email y contraseña obligatorios'); return; }
+  if (!ejecutivos.length && perfil !== 'gerente') { alert('Agrega al menos un ejecutivo'); return; }
+  const data = { usuario: email, clave, perfil, ejecutivos };
+  try {
+    if (adminModo === 'nuevo') await sbInsert('fund_usuarios', data);
+    else await sbUpdate('fund_usuarios', adminUsuarios[adminSelIdx].id, data);
+    await cargarAdminUsuarios();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+async function eliminarUser() {
+  const u = adminUsuarios[adminSelIdx];
+  if (u.usuario === currentUser.usuario) { alert('No puedes eliminarte a ti mismo'); return; }
+  if (!confirm('Eliminar usuario ' + u.usuario + '?')) return;
+  try { await sbDelete('fund_usuarios', u.id); adminSelIdx = null; adminModo = null; await cargarAdminUsuarios(); renderAdminFormEmpty(); }
+  catch(e) { alert('Error: ' + e.message); }
+}
+function nuevoUser() { adminSelIdx = null; adminModo = 'nuevo'; renderAdminLista(); renderAdminFormEditar({ usuario:'', clave:'', perfil:'usuario', ejecutivos:[], ultimo_acceso: null }); }
+
+// ============================================================
+// KEYBOARD
+// ============================================================
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { cerrarModal(); cerrarInforme(); cerrarEliminar(); cerrarAdmin(); }
+});
+</script>
+</body>
+</html>
