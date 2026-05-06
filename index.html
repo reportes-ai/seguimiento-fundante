@@ -93,9 +93,9 @@
   .celda-clic { cursor:pointer;border-radius:4px;transition:background 0.15s; }
   .celda-clic:hover { background:#BBDEFB !important; }
   .celda-activa { background:var(--azul) !important;color:#fff !important;font-weight:700 !important;border-radius:4px; }
-  .badge-pend { background:var(--amarillo-bg);color:#F57F17;border-radius:3px;padding:1px 5px;font-weight:700; }
-  .badge-fpl { background:var(--rojo-bg);color:var(--rojo);border-radius:3px;padding:1px 5px;font-weight:700; }
-  .badge-ok { background:var(--verde-bg);color:var(--verde);border-radius:3px;padding:1px 5px;font-weight:600; }
+  .badge-fpl,.badge-ok { border-radius:3px;padding:1px 5px; }
+  .badge-fpl { background:var(--rojo-bg);color:var(--rojo);font-weight:700; }
+  .badge-ok { background:var(--verde-bg);color:var(--verde);font-weight:600; }
 
   /* BOTONES PANEL IZQ */
   .btn-panel { margin:8px 14px 4px;padding:9px 0;color:#fff;border:none;border-radius:var(--radio);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;width:calc(100% - 28px); }
@@ -140,10 +140,11 @@
   .hist-table tr:hover td { background:#F9F4FF; }
 
   /* ALERTAS BADGES */
-  .alerta-pendiente { background:var(--amarillo-bg);color:#F57F17;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
-  .alerta-fpl { background:var(--rojo-bg);color:var(--rojo);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
-  .alerta-ok { background:var(--verde-bg);color:var(--verde);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
-  .alerta-recibido { background:var(--azul-bg);color:var(--azul);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
+  .alerta-pendiente,.alerta-fpl,.alerta-ok,.alerta-recibido { padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap; }
+  .alerta-pendiente { background:var(--amarillo-bg);color:#F57F17; }
+  .alerta-fpl { background:var(--rojo-bg);color:var(--rojo); }
+  .alerta-ok { background:var(--verde-bg);color:var(--verde); }
+  .alerta-recibido { background:var(--azul-bg);color:var(--azul); }
 
   /* ESTADO FUNDANTE BADGES */
   .fund-PENDIENTE { background:var(--amarillo-bg);color:#F57F17; }
@@ -159,10 +160,13 @@
   .fsub-EN_PROCESO,.fsub-A_TIEMPO { background:var(--azul-bg);color:var(--azul); }
   .fsub-INCOMPLETOS,.fsub-SALDO_PENDIENTE { background:var(--amarillo-bg);color:#F57F17; }
   .fsub-CON_PROBLEMAS { background:var(--naranja-bg);color:var(--naranja); }
-  .fsub-ENVIADOS_SUB { background:var(--morado-bg);color:var(--morado); }
-  .seg-vencido { background:var(--rojo-bg);color:var(--rojo);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600; }
-  .seg-aldia { background:var(--verde-bg);color:var(--verde);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600; }
-  .seg-sin { background:var(--gris-claro);color:var(--gris);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600; }
+  .fsub-ENVIADOS_SUB,.fsub-ENVIADOS { background:var(--morado-bg);color:var(--morado); }
+  .resumen-sub td { font-size:11px;padding:2px 8px 2px 22px;color:var(--texto-sec);border-bottom:1px solid var(--gris-claro); }
+  .resumen-sub td:first-child { font-style:italic; }
+  .seg-vencido,.seg-aldia,.seg-sin { padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600; }
+  .seg-vencido { background:var(--rojo-bg);color:var(--rojo); }
+  .seg-aldia { background:var(--verde-bg);color:var(--verde); }
+  .seg-sin { background:var(--gris-claro);color:var(--gris); }
 
   /* MODAL */
   .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.52);display:none;align-items:center;justify-content:center;z-index:500; }
@@ -375,15 +379,9 @@
           <select id="sel-subestado"><option value="">-- Seleccione estado primero --</option></select>
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Fecha Seguimiento <small style="text-transform:none;font-weight:400;color:var(--texto-sec)">(48h háb., máx 5 días)</small></label>
-          <input type="date" id="inp-fecha-seg">
-        </div>
-        <div class="form-group">
-          <label>Monto Fundante</label>
-          <input type="number" id="inp-monto" placeholder="0">
-        </div>
+      <div class="form-group">
+        <label>Fecha Seguimiento <small style="text-transform:none;font-weight:400;color:var(--texto-sec)">(48h háb., máx 4 días)</small></label>
+        <input type="date" id="inp-fecha-seg">
       </div>
       <div class="form-group">
         <label>Comentario <span style="color:var(--rojo)">*</span></label>
@@ -465,7 +463,7 @@
 // SUPABASE CONFIG
 // ============================================================
 const SUPABASE_URL = 'https://yrwekbmgahslxmbuhuib.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlyd2VrYm1nYWhzbHhtYnVodWliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzk1NzcsImV4cCI6MjA5MzYxNTU3N30.44Jrg7bm3iYvkiaSJCLoVpOt89pLrkKmzNKXzwQVBFo';'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2anp6ZWZ2aW1hZWdycGhpeGRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTE1NDksImV4cCI6MjA5MDQ2NzU0OX0.aB7emuk7Ypj5vPhht7vpkFuLuhkwSjN_dc3_jh-udLk';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlyd2VrYm1nYWhzbHhtYnVodWliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzk1NzcsImV4cCI6MjA5MzYxNTU3N30.44Jrg7bm3iYvkiaSJCLoVpOt89pLrkKmzNKXzwQVBFo';
 
 async function sbGet(table, params='') {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
@@ -610,12 +608,7 @@ async function recargarDatos() {
   try {
     let opsRaw = await sbGet('fund_operaciones', 'order=op.desc&limit=5000');
     // Filtrar por ejecutivo asignado si no es gerente/todos
-    if (currentUser.perfil === 'usuario' && currentUser.ejecutivos && currentUser.ejecutivos[0] !== 'todos') {
-      opsRaw = opsRaw.filter(o => {
-        const ej = (o.ej_comercial || '').toUpperCase().trim();
-        return currentUser.ejecutivos.some(e => ej === e.toUpperCase().trim());
-      });
-    } else if (currentUser.perfil === 'supervisor' && currentUser.ejecutivos && currentUser.ejecutivos[0] !== 'todos') {
+    if (['usuario','supervisor'].includes(currentUser.perfil) && currentUser.ejecutivos?.[0] !== 'todos') {
       opsRaw = opsRaw.filter(o => {
         const ej = (o.ej_comercial || '').toUpperCase().trim();
         return currentUser.ejecutivos.some(e => ej === e.toUpperCase().trim());
@@ -847,6 +840,7 @@ function pasaFiltroRapido(op) {
 function renderResumen() {
   const contadores = {};
   FUND_ESTADOS_ORDEN.forEach(e => contadores[e] = { total: 0, vencido: 0, alDia: 0 });
+  const pendSub = {'EN PLAZO': 0, 'ATRASADO': 0, 'CON PROBLEMAS': 0};
   getOpsActivas().filter(pasaFiltroRapido).forEach(op => {
     const est = getFundEstado(op);
     const seg = getFundSeguimiento(op);
@@ -854,6 +848,7 @@ function renderResumen() {
     contadores[est].total++;
     if (seg === 'VENCIDO') contadores[est].vencido++;
     else contadores[est].alDia++;
+    if (est === 'PENDIENTE') pendSub[calcSubEstadoAuto(op)]++;
   });
   const totales = { total: 0, vencido: 0, alDia: 0 };
   FUND_ESTADOS_ORDEN.forEach(e => { totales.total += contadores[e].total; totales.vencido += contadores[e].vencido; totales.alDia += contadores[e].alDia; });
@@ -869,12 +864,21 @@ function renderResumen() {
       <td style="font-weight:600">${est}</td>
       <td class="celda-clic ${ia ? 'celda-activa' : ''}" onclick="selFiltro('${est}')">${c.total}</td>
       <td class="celda-clic ${ia ? 'celda-activa' : ''}" onclick="selFiltro('${est}')">
-        <span style="${!ia ? 'background:var(--rojo-bg);color:var(--rojo);border-radius:3px;padding:1px 5px;font-weight:700' : ''}">${c.vencido}</span>
+        <span ${!ia ? 'class="badge-fpl"' : ''}>${c.vencido}</span>
       </td>
       <td class="celda-clic ${ia ? 'celda-activa' : ''}" onclick="selFiltro('${est}')">
-        <span style="${!ia ? 'background:var(--verde-bg);color:var(--verde);border-radius:3px;padding:1px 5px;font-weight:600' : ''}">${c.alDia}</span>
+        <span ${!ia ? 'class="badge-ok"' : ''}>${c.alDia}</span>
       </td>`;
     tbody.appendChild(tr);
+    if (est === 'PENDIENTE' && c.total > 0) {
+      [['EN PLAZO','fsub-EN_PLAZO'],['ATRASADO','fsub-ATRASADO'],['CON PROBLEMAS','fsub-CON_PROBLEMAS']].forEach(([sub, cls]) => {
+        if (pendSub[sub] === 0) return;
+        const ts = document.createElement('tr');
+        ts.className = 'resumen-sub';
+        ts.innerHTML = `<td>↳ ${sub}</td><td colspan="3"><span class="fsub ${cls}">${pendSub[sub]}</span></td>`;
+        tbody.appendChild(ts);
+      });
+    }
   });
   const trT = document.createElement('tr');
   trT.className = 'fila-total';
@@ -964,6 +968,18 @@ function mostrarFichaBusqueda() {
 }
 
 function fmt(n) { if (!n || isNaN(n)) return '-'; return '$' + Number(n).toLocaleString('es-CL'); }
+function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function parseEjs(u) { return Array.isArray(u.ejecutivos) ? u.ejecutivos : (u.ejecutivos ? JSON.parse(u.ejecutivos) : []); }
+
+function calcSubEstadoAuto(op) {
+  if (!op.fecha_otorgado) return 'EN PLAZO';
+  const d = new Date(op.fecha_otorgado + 'T00:00:00');
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const dias = Math.floor((hoy - d) / 86400000);
+  if (dias <= 5) return 'EN PLAZO';
+  if (dias <= 10) return 'ATRASADO';
+  return 'CON PROBLEMAS';
+}
 
 function alertaBadge(alerta) {
   if (!alerta) return '-';
@@ -1031,7 +1047,7 @@ function renderFicha(op) {
       <div class="ficha-field"><div class="ficha-label">Alerta Pago SP</div><div class="ficha-val">${alertaBadge(op.alerta_pago_sp)}</div></div>
       <div class="ficha-field"><div class="ficha-label">Fecha Recep. FEI</div><div class="ficha-val">${op.fecha_recepcion_fei||'-'}</div></div>
       <div class="ficha-field"><div class="ficha-label">Alerta Recep. FEI</div><div class="ficha-val">${alertaBadge(op.alerta_recep_fei)}</div></div>
-      <div class="ficha-field"><div class="ficha-label">Estado Fundante</div><div class="ficha-val">${subBadge(est)} &nbsp; ${segBadge(seg)}</div></div>
+      <div class="ficha-field"><div class="ficha-label">Estado Fundante</div><div class="ficha-val">${subBadge(est)}${est === 'PENDIENTE' ? ` &nbsp; ${subBadge(calcSubEstadoAuto(op))}` : ''} &nbsp; ${segBadge(seg)}</div></div>
     </div>
     <div class="hist-section">
       <div class="hist-header">📋 Historial de Gestiones Fundantes (más reciente primero)</div>
@@ -1063,8 +1079,7 @@ function abrirModal() {
   document.getElementById('sel-estado-fund').value = '';
   document.getElementById('sel-subestado').innerHTML = '<option value="">-- Seleccione estado primero --</option>';
   document.getElementById('inp-fecha-seg').value = calcFechaSeg(2);
-  document.getElementById('inp-fecha-seg').max = calcFechaSeg(5);
-  document.getElementById('inp-monto').value = '';
+  document.getElementById('inp-fecha-seg').max = calcFechaSeg(4);
   document.getElementById('inp-comentario').value = '';
   document.getElementById('btn-grabar').disabled = false;
   // Mostrar opciones según perfil
@@ -1084,6 +1099,11 @@ function actualizarSubestado() {
   (FUND_SUBESTADOS[est] || []).forEach(m => {
     const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o);
   });
+  if (est === 'PENDIENTE') {
+    const lista = busquedaActiva ? resultadosBusqueda : registrosFiltrados;
+    const op = lista[busquedaActiva ? idxBusqueda : idxActual];
+    if (op) sel.value = calcSubEstadoAuto(op);
+  }
 }
 
 async function grabarGestion() {
@@ -1091,7 +1111,11 @@ async function grabarGestion() {
   const subestado = document.getElementById('sel-subestado').value;
   const comentario = document.getElementById('inp-comentario').value.trim();
   if (!estado || !subestado) { alert('Seleccione Estado y Sub-Estado'); return; }
-  if (!comentario) { alert('El comentario es requerido'); return; }
+  if (comentario.length < 5) { alert('El comentario debe tener al menos 5 caracteres'); return; }
+  if (currentUser.perfil === 'usuario' && estado === 'PENDIENTE' && subestado !== 'ENVIADOS') {
+    alert('Los ejecutivos solo pueden grabar al enviar documentos.\nSub-Estado debe ser ENVIADOS.');
+    return;
+  }
 
   const lista = busquedaActiva ? resultadosBusqueda : registrosFiltrados;
   const idx = busquedaActiva ? idxBusqueda : idxActual;
@@ -1105,7 +1129,6 @@ async function grabarGestion() {
       operacion_id: op.id,
       estado_fundante: estado,
       sub_estado: subestado,
-      monto_fundante: Number(document.getElementById('inp-monto').value) || null,
       fecha_seguimiento: document.getElementById('inp-fecha-seg').value || null,
       comentario,
       usuario: currentUser.usuario,
@@ -1121,7 +1144,9 @@ async function grabarGestion() {
   }
 }
 
-document.getElementById('modal-overlay').addEventListener('click', function(e) { if (e.target === this) cerrarModal(); });
+['modal-overlay','modal-informe','modal-eliminar'].forEach(id =>
+  document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) this.classList.remove('visible'); })
+);
 
 // ============================================================
 // EXPORTAR
@@ -1153,10 +1178,9 @@ function exportarExcel() {
 // ============================================================
 function abrirInforme() {
   const hoy = new Date();
-  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const primerMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-  document.getElementById('inf-desde').value = fmt(primerMes);
-  document.getElementById('inf-hasta').value = fmt(hoy);
+  document.getElementById('inf-desde').value = fmtDate(primerMes);
+  document.getElementById('inf-hasta').value = fmtDate(hoy);
   document.getElementById('informe-resultado').innerHTML = '<p style="color:var(--texto-sec);text-align:center;padding:20px">Presione Generar</p>';
   document.getElementById('btn-exportar-inf').style.display = 'none';
   document.getElementById('modal-informe').classList.add('visible');
@@ -1239,16 +1263,14 @@ function exportarInforme() {
   a.download = `Informe_Fundantes_${desde}_${hasta}.csv`; a.click();
 }
 
-document.getElementById('modal-informe').addEventListener('click', function(e) { if (e.target === this) cerrarInforme(); });
 
 // ============================================================
 // ELIMINAR
 // ============================================================
 function abrirEliminar() {
   const hoy = new Date();
-  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  document.getElementById('del-desde').value = fmt(new Date(hoy.getFullYear(), 0, 1));
-  document.getElementById('del-hasta').value = fmt(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
+  document.getElementById('del-desde').value = fmtDate(new Date(hoy.getFullYear(), 0, 1));
+  document.getElementById('del-hasta').value = fmtDate(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
   document.getElementById('del-resultado').style.display = 'none';
   document.getElementById('modal-eliminar').classList.add('visible');
 }
@@ -1286,7 +1308,6 @@ async function confirmarEliminar() {
   }
 }
 
-document.getElementById('modal-eliminar').addEventListener('click', function(e) { if (e.target === this) cerrarEliminar(); });
 
 // ============================================================
 // ADMIN USUARIOS
@@ -1305,7 +1326,7 @@ function renderAdminLista() {
   ul.innerHTML = adminUsuarios.map((u, i) => {
     const cls = i === adminSelIdx ? ' active' : '';
     const last = u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Nunca';
-    const ejs = Array.isArray(u.ejecutivos) ? u.ejecutivos : (u.ejecutivos ? JSON.parse(u.ejecutivos) : []);
+    const ejs = parseEjs(u);
     return `<div class="admin-user-item${cls}" onclick="seleccionarUser(${i})">
       <div class="admin-user-avatar avatar-${u.perfil}">${u.usuario[0].toUpperCase()}</div>
       <div class="admin-user-info">
