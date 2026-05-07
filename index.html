@@ -62,11 +62,6 @@
   .panel-left-header .fecha { font-size:11px;color:var(--texto-sec);margin-top:2px; }
 
   /* UPLOAD */
-  .upload-area { margin:10px 14px 4px;padding:10px 14px;border:1.5px dashed var(--azul-claro);border-radius:var(--radio);background:var(--azul-bg);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.2s; }
-  .upload-area:hover { background:#BBDEFB; }
-  .upload-area .icon { font-size:18px; }
-  .upload-area p { font-size:12px;color:var(--azul);font-weight:500;margin:0; }
-  .upload-area small { font-size:11px;color:var(--texto-sec); }
   #file-input { display:none; }
   .estado-carga { padding:5px 12px;font-size:11px;background:var(--verde-bg);color:var(--verde);border-radius:4px;margin:0 14px 4px;display:none; }
   .estado-error { background:var(--rojo-bg);color:var(--rojo); }
@@ -266,6 +261,8 @@
       <button class="btn-sm" id="btn-informe" style="display:none" onclick="abrirInforme()">📊 Informe</button>
       <button class="btn-sm" id="btn-admin" style="display:none" onclick="abrirAdmin()">⚙️ Usuarios</button>
       <button class="btn-sm" id="btn-eliminar" style="display:none;background:rgba(198,40,40,0.3)" onclick="abrirEliminar()">🗑️ Eliminar</button>
+      <label class="btn-sm" id="btn-cargar" for="file-input" style="display:none;cursor:pointer">📂 Cargar XLS</label>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.htm,.html" onchange="loadExcel(event)">
       <button class="btn-sm" onclick="recargarDatos()">🔄 Actualizar</button>
       <button class="btn-sm" onclick="doLogout()">Cerrar sesión</button>
     </div>
@@ -285,18 +282,7 @@
         </select>
       </div>
 
-      <!-- UPLOAD -->
-      <div id="upload-section" style="display:none">
-        <label class="upload-area" for="file-input">
-          <span class="icon">📂</span>
-          <div>
-            <p>Cargar detalle_sp_xxxx.xls</p>
-            <small>Solo se importarán OPs nuevas</small>
-          </div>
-        </label>
-        <input type="file" id="file-input" accept=".xlsx,.xls,.htm,.html" onchange="loadExcel(event)">
-        <div class="estado-carga" id="estado-carga"></div>
-      </div>
+      <div class="estado-carga" id="estado-carga"></div>
 
       <!-- FILTROS RÁPIDOS -->
       <div class="filtros-container">
@@ -587,7 +573,7 @@ async function initApp() {
   document.getElementById('header-user').textContent = `${label}: ${nombre}`;
   document.getElementById('panel-user-label').textContent = nombre;
   document.getElementById('panel-fecha').textContent = new Date().toLocaleDateString('es-CL', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('upload-section').style.display = esGer ? 'block' : 'none';
+  document.getElementById('btn-cargar').style.display = esGer ? 'inline-block' : 'none';
   document.getElementById('btn-informe').style.display = (esGer || esSup) ? 'inline-block' : 'none';
   document.getElementById('btn-eliminar').style.display = esGer ? 'inline-block' : 'none';
   document.getElementById('btn-admin').style.display = esGer ? 'inline-block' : 'none';
