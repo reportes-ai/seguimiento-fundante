@@ -805,8 +805,8 @@ function getFundSeguimiento(op) {
 // ============================================================
 function aplicarFiltroRapido() {
   // Solo actualiza el resumen y vista si ya hay filtro de estado activo
+  renderResumen();
   if (filtroEstado) aplicarFiltro();
-  else renderResumen();
 }
 
 function limpiarFiltros() {
